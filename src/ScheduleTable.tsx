@@ -57,16 +57,6 @@ const ScheduleTable = React.memo(
 
     const dndContext = useDndContext();
 
-    const getActiveTableId = useCallback(() => {
-      const activeId = dndContext.active?.id;
-      if (activeId) {
-        return String(activeId).split(":")[0];
-      }
-      return null;
-    }, [dndContext.active]);
-
-    const activeTableId = getActiveTableId();
-
     const handleScheduleTimeClick = useCallback(
       (day: string, timeIndex: number) => {
         onScheduleTimeClick?.({ day, time: timeIndex + 1 });
@@ -74,12 +64,21 @@ const ScheduleTable = React.memo(
       [onScheduleTimeClick]
     );
 
+    const activeTableId = useMemo(() => {
+      const activeId = dndContext.active?.id;
+      if (activeId) {
+        return String(activeId).split(":")[0];
+      }
+      return null;
+    }, [dndContext.active]);
+
+    const outlineStyle = useMemo(
+      () => (activeTableId === tableId ? "5px dashed" : undefined),
+      [activeTableId, tableId]
+    );
+
     return (
-      <Box
-        position="relative"
-        outline={activeTableId === tableId ? "5px dashed" : undefined}
-        outlineColor="blue.300"
-      >
+      <Box position="relative" outline={outlineStyle} outlineColor="blue.300">
         <Grid
           templateColumns={`120px repeat(${DAY_LABELS.length}, ${CellSize.WIDTH}px)`}
           templateRows={`40px repeat(${TIMES.length}, ${CellSize.HEIGHT}px)`}
@@ -163,9 +162,11 @@ const DraggableSchedule = React.memo(
       onDeleteButtonClick: () => void;
     }) => {
     const { day, range, room, lecture } = data;
+
     const { attributes, setNodeRef, listeners, transform } = useDraggable({
       id,
     });
+
     const leftIndex = useMemo(
       () => DAY_LABELS.indexOf(day as (typeof DAY_LABELS)[number]),
       [day]
@@ -173,21 +174,34 @@ const DraggableSchedule = React.memo(
     const topIndex = useMemo(() => range[0] - 1, [range]);
     const size = useMemo(() => range.length, [range]);
 
+    const position = useMemo(() => {
+      const left = `${120 + CellSize.WIDTH * leftIndex + 1}px`;
+      const top = `${40 + (topIndex * CellSize.HEIGHT + 1)}px`;
+      const width = `${CellSize.WIDTH - 1}px`;
+      const height = `${CellSize.HEIGHT * size - 1}px`;
+      return { left, top, width, height };
+    }, [leftIndex, topIndex, size]);
+
+    const transformStyle = useMemo(
+      () => CSS.Translate.toString(transform),
+      [transform]
+    );
+
     return (
       <Popover>
         <PopoverTrigger>
           <Box
             position="absolute"
-            left={`${120 + CellSize.WIDTH * leftIndex + 1}px`}
-            top={`${40 + (topIndex * CellSize.HEIGHT + 1)}px`}
-            width={CellSize.WIDTH - 1 + "px"}
-            height={CellSize.HEIGHT * size - 1 + "px"}
+            left={position.left}
+            top={position.top}
+            width={position.width}
+            height={position.height}
             bg={bg}
             p={1}
             boxSizing="border-box"
             cursor="pointer"
             ref={setNodeRef}
-            transform={CSS.Translate.toString(transform)}
+            transform={transformStyle}
             {...listeners}
             {...attributes}
           >
