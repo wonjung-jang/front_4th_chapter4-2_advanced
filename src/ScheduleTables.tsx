@@ -3,6 +3,7 @@ import ScheduleTable from "./ScheduleTable.tsx";
 import { useScheduleContext } from "./ScheduleContext.tsx";
 import SearchDialog from "./SearchDialog.tsx";
 import { useCallback, useMemo, useState } from "react";
+import ScheduleDndProvider from "./ScheduleDndProvider.tsx";
 
 export const ScheduleTables = () => {
   const { schedulesMap, setSchedulesMap } = useScheduleContext();
@@ -22,53 +23,9 @@ export const ScheduleTables = () => {
     [schedulesMap]
   );
 
-  const duplicate = useCallback(
-    (targetId: string) => {
-      setSchedulesMap((prev) => ({
-        ...prev,
-        [`schedule-${Date.now()}`]: [...prev[targetId]],
-      }));
-    },
-    [setSchedulesMap]
-  );
-
-  const remove = useCallback(
-    (targetId: string) => {
-      setSchedulesMap((prev) => {
-        delete prev[targetId];
-        return { ...prev };
-      });
-    },
-    [setSchedulesMap]
-  );
-
-  const handleSearchOpen = useCallback((info: { tableId: string }) => {
-    setSearchInfo(info);
-  }, []);
-
   const handleSearchClose = useCallback(() => {
     setSearchInfo(null);
   }, []);
-
-  const handleDeleteSchedule = useCallback(
-    ({
-      tableId,
-      day,
-      time,
-    }: {
-      tableId: string;
-      day: string;
-      time: number;
-    }) => {
-      setSchedulesMap((prev) => ({
-        ...prev,
-        [tableId]: prev[tableId].filter(
-          (schedule) => schedule.day !== day || !schedule.range.includes(time)
-        ),
-      }));
-    },
-    [setSchedulesMap]
-  );
 
   return (
     <>
@@ -82,37 +39,55 @@ export const ScheduleTables = () => {
               <ButtonGroup size="sm" isAttached>
                 <Button
                   colorScheme="green"
-                  onClick={() => handleSearchOpen({ tableId })}
+                  onClick={() => setSearchInfo({ tableId })}
                 >
                   시간표 추가
                 </Button>
                 <Button
                   colorScheme="green"
                   mx="1px"
-                  onClick={() => duplicate(tableId)}
+                  onClick={() => {
+                    setSchedulesMap((prev) => ({
+                      ...prev,
+                      [`schedule-${Date.now()}`]: [...prev[tableId]],
+                    }));
+                  }}
                 >
                   복제
                 </Button>
                 <Button
                   colorScheme="green"
                   isDisabled={disabledRemoveButton}
-                  onClick={() => remove(tableId)}
+                  onClick={() => {
+                    setSchedulesMap((prev) => {
+                      delete prev[tableId];
+                      return { ...prev };
+                    });
+                  }}
                 >
                   삭제
                 </Button>
               </ButtonGroup>
             </Flex>
-            <ScheduleTable
-              key={`schedule-table-${index}`}
-              schedules={schedules}
-              tableId={tableId}
-              onScheduleTimeClick={(timeInfo) =>
-                setSearchInfo({ tableId, ...timeInfo })
-              }
-              onDeleteButtonClick={({ day, time }) =>
-                handleDeleteSchedule({ tableId, day, time })
-              }
-            />
+            <ScheduleDndProvider>
+              <ScheduleTable
+                key={`schedule-table-${index}`}
+                schedules={schedules}
+                tableId={tableId}
+                onScheduleTimeClick={(timeInfo) =>
+                  setSearchInfo({ tableId, ...timeInfo })
+                }
+                onDeleteButtonClick={({ day, time }) =>
+                  setSchedulesMap((prev) => ({
+                    ...prev,
+                    [tableId]: prev[tableId].filter(
+                      (schedule) =>
+                        schedule.day !== day || !schedule.range.includes(time)
+                    ),
+                  }))
+                }
+              />
+            </ScheduleDndProvider>
           </Stack>
         ))}
       </Flex>

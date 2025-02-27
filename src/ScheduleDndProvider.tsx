@@ -76,7 +76,7 @@ export default function ScheduleDndProvider({ children }: PropsWithChildren) {
       setSchedulesMap({
         ...schedulesMap,
         [tableId]: schedulesMap[tableId].map((targetSchedule, targetIndex) => {
-          if (targetIndex !== Number(index)) {
+          if (targetIndex !== index) {
             return { ...targetSchedule };
           }
           return {
@@ -87,7 +87,7 @@ export default function ScheduleDndProvider({ children }: PropsWithChildren) {
         }),
       });
     },
-    [schedulesMap, setSchedulesMap]
+    [setSchedulesMap]
   );
 
   return (
